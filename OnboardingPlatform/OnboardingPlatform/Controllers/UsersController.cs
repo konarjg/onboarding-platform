@@ -9,7 +9,7 @@ using Dtos;
 
 [ApiController]
 [Route("api/users")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Manager,HumanResources,Admin")]
 public class UsersController(IUserService userService, IMapper mapper) : ControllerBase {
 
   [HttpGet]
@@ -35,6 +35,7 @@ public class UsersController(IUserService userService, IMapper mapper) : Control
   [HttpPatch("{userId}/role")]
   [ProducesResponseType(typeof(UserResponse), 200)]
   [ProducesResponseType(404)]
+  [Authorize(Roles = "Admin")]
   public async Task<IActionResult> UpdateUserRole(int userId, [FromBody] UpdateUserRoleRequest request) {
     User? updatedUser = await userService.UpdateUserRoleAsync(userId, request.Role);
     if (updatedUser is null) {
@@ -47,6 +48,7 @@ public class UsersController(IUserService userService, IMapper mapper) : Control
   [HttpDelete("{userId}")]
   [ProducesResponseType(204)]
   [ProducesResponseType(404)]
+  [Authorize(Roles = "Admin")]
   public async Task<IActionResult> DeactivateUser(int userId) {
     await userService.DeactivateUserAsync(userId);
     return NoContent();

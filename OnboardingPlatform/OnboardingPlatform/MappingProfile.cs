@@ -29,19 +29,23 @@ public class MappingProfile : Profile {
     CreateMap<UpdateModuleProgressRequest, UpdateModuleProgressCommand>();
 
     CreateMap<UserPathWithProgress, UserPathProgressResponse>()
-      .ForMember(dest => dest.PathId, opt => opt.MapFrom(src => src.Path.Id))
-      .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Path.Title))
-      .ForMember(dest => dest.ProgressPercentage, opt => opt.MapFrom(src => src.ProgressPercentage));
+      .ConstructUsing(src => new UserPathProgressResponse(
+        src.Path.Id,
+        src.Path.Title,
+        src.ProgressPercentage
+      ));
 
     CreateMap<ModuleCompletionStatus, ModuleProgressResponse>();
 
     CreateMap<UserPathDetails, UserPathDetailsResponse>()
-      .ForMember(dest => dest.PathId, opt => opt.MapFrom(src => src.Path.Id))
-      .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Path.Title))
-      .ForMember(dest => dest.Summary, opt => opt.MapFrom(src => src.Path.SummaryMarkdown))
-      .ForMember(dest => dest.EnrollmentDate, opt => opt.MapFrom(src => src.EnrollmentDetails.EnrollmentDate))
-      .ForMember(dest => dest.Modules, opt => opt.MapFrom(src => src.ModuleStatuses))
-      .ForMember(dest => dest.ProgressPercentage, opt => opt.MapFrom(src => CalculateOverallProgress(src.ModuleStatuses)));
+      .ConstructUsing(src => new UserPathDetailsResponse(
+        src.Path.Id,
+        src.Path.Title,
+        src.Path.SummaryMarkdown,
+        src.EnrollmentDetails.EnrollmentDate,
+        CalculateOverallProgress(src.ModuleStatuses),
+        src.ModuleStatuses.Select(m => new ModuleProgressResponse(m.ModuleId, m.Title, m.IsCompleted)).ToList()
+      ));
     
     CreateMap(typeof(PagedResult<>), typeof(PagedResponse<>));
   }

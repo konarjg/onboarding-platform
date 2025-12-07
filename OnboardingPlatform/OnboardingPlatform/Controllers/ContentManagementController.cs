@@ -11,7 +11,7 @@ using Dtos;
 [ApiController]
 [Route("api")]
 [Authorize(Roles = "Manager,HumanResources,Admin")]
-public class ContentManagementController(IContentManagementService contentManagementService, IMapper mapper) : ControllerBase {
+public class ContentManagementController(IContentManagementService contentManagementService, ILearningService learningService, IMapper mapper) : ControllerBase {
   
   [HttpGet("paths")]
   [ProducesResponseType(typeof(PagedResponse<PathResponse>), 200)]
@@ -162,6 +162,23 @@ public class ContentManagementController(IContentManagementService contentManage
   [ProducesResponseType(404)]
   public async Task<IActionResult> DeleteContentSection(int contentId) {
     await contentManagementService.DeleteContentSectionAsync(contentId);
+    return NoContent();
+  }
+  
+  [HttpPost("paths/{pathId}/users")]
+  [ProducesResponseType(204)]
+  [ProducesResponseType(400)]
+  [ProducesResponseType(404)]
+  public async Task<IActionResult> AssignUserToPath(int pathId, [FromBody] AssignUserToPathRequest request) {
+    await learningService.EnrollUserInPathAsync(request.UserId, pathId);
+    return NoContent();
+  }
+  
+  [HttpDelete("paths/{pathId}/users/{userId}")]
+  [ProducesResponseType(204)]
+  [ProducesResponseType(404)]
+  public async Task<IActionResult> UnassignUserFromPath(int pathId, int userId) {
+    await learningService.UnenrollUserFromPathAsync(userId, pathId);
     return NoContent();
   }
 

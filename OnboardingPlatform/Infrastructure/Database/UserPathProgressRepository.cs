@@ -59,35 +59,61 @@ public class UserPathProgressRepository(DatabaseContext databaseContext) : IUser
 
   
   public async Task<PagedResult<UserPathProgressWithCounts>> GetForUserWithProgressCountsAsync(int userId, int? pointer, int pageSize, CancellationToken cancellationToken = default) {
-    IQueryable<UserPathProgress> query = databaseContext.UserPathProgresses
-      .Where(upp => upp.UserId == userId)
-      .AsNoTracking();
+    
+    // 1. Build Query
+    var query = databaseContext.UserPathProgresses
+      .AsNoTracking()
+      .Where(upp => upp.UserId == userId);
 
     if (pointer.HasValue) {
       query = query.Where(upp => upp.PathId > pointer.Value);
     }
     
-    IQueryable<UserPathProgressWithCounts> projectedQuery = query
-      .Select(enrollment => new UserPathProgressWithCounts(
-        new UserPathProgress {
-          UserId = enrollment.UserId,
-          PathId = enrollment.PathId,
-          EnrollmentDate = enrollment.EnrollmentDate,
-          Path = enrollment.Path
-        },
-        databaseContext.Modules.Count(m => m.PathId == enrollment.PathId),
-        databaseContext.UserModuleProgresses.Count(ump =>
-          ump.UserId == userId &&
-          ump.CompletionDate != null &&
-          databaseContext.Modules.Any(m => m.Id == ump.ModuleId && m.PathId == enrollment.PathId)
-        )
-      ));
-      
-    List<UserPathProgressWithCounts> items = await projectedQuery
-      .OrderBy(p => p.Enrollment.PathId)
+    // 2. Fetch Data (Projection)
+    var rawData = await query
+      .OrderBy(upp => upp.PathId)
       .Take(pageSize + 1)
+      .Select(upp => new {
+          // Fetch the raw entity
+          Enrollment = upp,
+          // Explicitly fetch the navigation property
+          Path = upp.Path,        
+          
+          // Subqueries for counts
+          TotalCount = databaseContext.Modules
+              .Count(m => m.PathId == upp.PathId),
+              
+          CompletedCount = databaseContext.UserModuleProgresses
+              .Count(ump =>
+                  ump.UserId == userId &&
+                  ump.CompletionDate != null &&
+                  ump.Module.PathId == upp.PathId
+              )
+      })
       .ToListAsync(cancellationToken);
 
+    // 3. In-Memory Mapping (Fixing the Null Reference)
+    List<UserPathProgressWithCounts> items = rawData
+      .Select(item => {
+          // Since 'Path' is likely an 'init' property, we must create a new object 
+          // to assign it. We copy the values from the fetched 'item.Enrollment'.
+          var enrollmentWithPath = new UserPathProgress {
+              UserId = item.Enrollment.UserId,
+              PathId = item.Enrollment.PathId,
+              EnrollmentDate = item.Enrollment.EnrollmentDate,
+              CompletionDate = item.Enrollment.CompletionDate,
+              // LINK THE PATH HERE
+              Path = item.Path 
+          };
+          
+          return new UserPathProgressWithCounts(
+              enrollmentWithPath,
+              item.TotalCount,
+              item.CompletedCount
+          );
+      })
+      .ToList();
+    
     bool hasNextPage = items.Count > pageSize;
     
     if (hasNextPage) {

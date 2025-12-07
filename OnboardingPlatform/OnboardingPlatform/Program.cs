@@ -10,6 +10,18 @@ using OnboardingPlatform.Configuration;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000") 
+                  .AllowAnyHeader()                     
+                  .AllowAnyMethod()
+                  .AllowCredentials();                    
+        });
+});
+
 builder.Services.AddControllers()
   .AddJsonOptions(options => {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -66,8 +78,9 @@ builder.Services.AddSwaggerGen(options => {
   });
 });
 
-
 var app = builder.Build();
+
+await AdministrationSeed.SeedUsersAsync(app);
 
 if (app.Environment.IsDevelopment()) {
   app.UseSwagger();
@@ -75,6 +88,8 @@ if (app.Environment.IsDevelopment()) {
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AllowReactApp"); 
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -15,6 +15,7 @@ public class LearningService(
     IUserRepository userRepository, 
     IUserPathProgressRepository userPathProgressRepository,
     IUserModuleProgressRepository userModuleProgressRepository,
+    IContentSectionRepository contentSectionRepository,
     IUnitOfWork unitOfWork) : ILearningService {
 
   public async Task<UserPathProgress> EnrollUserInPathAsync(int userId, int pathId, CancellationToken cancellationToken = default) {
@@ -112,5 +113,10 @@ public class LearningService(
   
   public async Task<UserModuleProgress?> GetModuleProgressForUserAsync(int userId, int moduleId, CancellationToken cancellationToken = default) {
     return await userModuleProgressRepository.GetByUserAndModuleAsync(userId, moduleId, cancellationToken);
+  }
+  public async Task<PagedResult<ContentSection>> GetModuleContentAsync(int moduleId, int? pointer, int pageSize,
+    CancellationToken cancellationToken = default) {
+    
+    return await contentSectionRepository.GetForModuleAsync(moduleId, pointer, pageSize, cancellationToken);
   }
 }

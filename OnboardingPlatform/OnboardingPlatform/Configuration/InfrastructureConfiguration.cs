@@ -13,7 +13,7 @@ public static class InfrastructureConfiguration {
     
     string? connectionString = configuration.GetConnectionString("DefaultConnection");
     services.AddDbContext<DatabaseContext>(options => 
-      options.UseInMemoryDatabase(connectionString));
+      options.UseSqlite(connectionString));
     
     services.AddScoped<IUnitOfWork, UnitOfWork>();
     

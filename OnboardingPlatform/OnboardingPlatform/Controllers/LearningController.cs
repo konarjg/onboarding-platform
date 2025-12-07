@@ -37,25 +37,6 @@ public class LearningController(ILearningService learningService, IMapper mapper
     return Ok(response);
   }
 
-  [HttpPost("paths")]
-  [ProducesResponseType(204)]
-  [ProducesResponseType(400)]
-  [ProducesResponseType(404)]
-  public async Task<IActionResult> EnrollInPath([FromBody] EnrollPathRequest request) {
-    int userId = GetCurrentUserId();
-    await learningService.EnrollUserInPathAsync(userId, request.PathId);
-    return NoContent();
-  }
-
-  [HttpDelete("paths/{pathId}")]
-  [ProducesResponseType(204)]
-  [ProducesResponseType(404)]
-  public async Task<IActionResult> UnenrollFromPath(int pathId) {
-    int userId = GetCurrentUserId();
-    await learningService.UnenrollUserFromPathAsync(userId, pathId);
-    return NoContent();
-  }
-
   [HttpGet("modules/{moduleId}/progress")]
   [ProducesResponseType(typeof(ModuleProgressResponse), 200)]
   [ProducesResponseType(404)]
@@ -77,6 +58,14 @@ public class LearningController(ILearningService learningService, IMapper mapper
     UpdateModuleProgressCommand command = mapper.Map<UpdateModuleProgressCommand>(request);
     await learningService.UpdateModuleProgressAsync(userId, moduleId, command);
     return NoContent();
+  }
+  
+  [HttpGet("modules/{moduleId}/content")]
+  [ProducesResponseType(typeof(PagedResponse<ContentSectionResponse>), 200)]
+  public async Task<IActionResult> GetModuleContent(int moduleId, [FromQuery] int? pointer, [FromQuery] int pageSize) {
+    PagedResult<ContentSection> content = await learningService.GetModuleContentAsync(moduleId, pointer, pageSize);
+    PagedResponse<ContentSectionResponse> response = mapper.Map<PagedResponse<ContentSectionResponse>>(content);
+    return Ok(response);
   }
   
   private int GetCurrentUserId() {
